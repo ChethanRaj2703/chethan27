@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Billed Items List</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Billed Items List</h1>
+
+        <form id="customerNameForm">
+            <div class="form-group">
+                <label for="customerName">Customer Name:</label>
+                <input type="text" class="form-control" id="customerName" required>
+            </div>
+        </form>
+
+        <div class="row mt-3">
+            <div class="col-md-12">
+                <table class="table table-bordered" id="itemTable">
+                    <thead>
+                        <tr>
+                            <th>Sl. No.</th>
+                            <th>Item Name</th>
+                            <th>Quantity</th>
+                            <th>Price/Unit (₹)</th>
+                            <th>Labour Charges (₹)</th>
+                            <th>Transport Charges (₹)</th>
+                            <th>GST (%)</th>
+                            <th>Price + GST (₹)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="itemTableBody">
+                        <!-- Rows dynamically added using JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-12 mt-2">
+                <button type="button" class="btn btn-primary" onclick="addNewRow()">Add Item</button>
+            </div>
+        </div>
+
+        <div class="row mt-3">
+            <div class="col-md-12">
+                <button type="button" class="btn btn-success" onclick="openInvoice()">Generate Invoice</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.min.js"></script>
+    <script src="bill.js"></script>
+
+    <script>
+        function openInvoice() {
+            var invoiceData = collectInvoiceData();
+            var customerName = document.getElementById('customerName').value;
+
+            if (customerName.trim() === '') {
+                alert("Customer name cannot be empty.");
+                return;
+            }
+
+            sessionStorage.setItem('customerName', customerName);
+            sessionStorage.setItem('invoiceData', JSON.stringify(invoiceData));
+
+            window.open('invoice.html', '_blank');
+        }
+
+        function collectInvoiceData() {
+            var tableBody = document.getElementById("itemTableBody");
+            var rows = tableBody.rows;
+            var invoiceData = [];
+
+            for (var i = 0; i < rows.length; i++) {
+                var rowData = {
+                    itemName: rows[i].cells[1].querySelector('input[name="itemName"]').value,
+                    quantity: rows[i].cells[2].querySelector('input[name="quantity"]').value,
+                    pricePerUnit: rows[i].cells[3].querySelector('input[name="pricePerUnit"]').value,
+                    labourCharges: rows[i].cells[4].querySelector('input[name="labourCharges"]').value,
+                    transportCharges: rows[i].cells[5].querySelector('input[name="transportCharges"]').value,
+                    gstPercentage: rows[i].cells[6].querySelector('select[name="gstPercentage"]').value,
+                    pricePlusGST: rows[i].cells[7].querySelector('input[name="pricePlusGST"]').value
+                };
+                invoiceData.push(rowData);
+            }
+
+            return invoiceData;
+        }
+
+        function addNewRow() {
+            var tableBody = document.getElementById("itemTableBody");
+            var newRow = tableBody.insertRow();
+
+            for (var i = 0; i < 8; i++) {
+                newRow.insertCell(i);
+            }
+
+            updateSerialNumbers();
+
+            newRow.cells[0].textContent = tableBody.rows.length;
+            newRow.cells[1].innerHTML = '<input type="text" name="itemName" placeholder="Item Name" required>';
+            newRow.cells[2].innerHTML = '<input type="number" name="quantity" min="1" required oninput="calculateAmount(this)">';
+            newRow.cells[3].innerHTML = '<input type="number" name="pricePerUnit" min="0.01" step="0.01" required oninput="calculateAmount(this)">';
+            newRow.cells[4].innerHTML = '<input type="number" name="labourCharges" min="0.01" step="0.01" required>';
+            newRow.cells[5].innerHTML = '<input type="number" name="transportCharges" min="0.01" step="0.01" required>';
+            newRow.cells[6].innerHTML = `<select name="gstPercentage" onchange="calculateAmount(this)">
+                                            <option value="5">5%</option>
+                                            <option value="12">12%</option>
+                                            <option value="18">18%</option>
+                                         </select>`;
+            newRow.cells[7].innerHTML = '<input type="number" name="pricePlusGST" min="0.01" step="0.01" required readonly>';
+        }
+
+        function updateSerialNumbers() {
+            var rows = document.getElementById("itemTableBody").rows;
+            for (var i = 0; i < rows.length; i++) {
+                rows[i].cells[0].textContent = i + 1;
+            }
+        }
+
+        function calculateAmount(input) {
+            var row = input.parentNode.parentNode;
+            var quantity = parseFloat(row.cells[2].querySelector('input[name="quantity"]').value);
+            var pricePerUnit = parseFloat(row.cells[3].querySelector('input[name="pricePerUnit"]').value);
+            var labourCharges = parseFloat(row.cells[4].querySelector('input[name="labourCharges"]').value);
+            var transportCharges = parseFloat(row.cells[5].querySelector('input[name="transportCharges"]').value);
+            var gstPercentage = parseFloat(row.cells[6].querySelector('select[name="gstPercentage"]').value);
+
+            var totalPrice = quantity * pricePerUnit;
+            var gstAmount = (totalPrice * gstPercentage) / 100;
+            var pricePlusGST = totalPrice + gstAmount;
+
+            row.cells[7].querySelector('input[name="pricePlusGST"]').value = pricePlusGST.toFixed(2);
+        }
+    </script>
+</body>
+</html>
